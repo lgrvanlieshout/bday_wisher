@@ -1,0 +1,1 @@
+"uv" "run" "send_bday_wish.py"

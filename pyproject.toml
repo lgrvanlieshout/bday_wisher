@@ -1,0 +1,10 @@
+[project]
+name = "bday-wisher"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "emoji>=2.15.0",
+    "requests>=2.32.5",
+]
