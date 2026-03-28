@@ -61,3 +61,10 @@ Scheduler or turn it into a cron job.
 In case you add it to Windows Task Scheduler, under Action, you enter the path
 to the `run.bat` script in the `Program/script` field and the path to this repo
 in the `Start in (optional)` field.
+
+
+# Edit birthday wishes
+
+The current `send_bday_wish.py` sends birthday wishes in Dutch, since I'm
+Dutch and I don't expect a lot of people to come across this repo.
+You can edit the birthday wishes and probabilities in `send_bday_wish.py`.
