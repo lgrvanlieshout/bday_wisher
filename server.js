@@ -44,9 +44,9 @@ client.on('ready', async () => {
     console.log('WhatsApp ready!');
     isReady = true;
 
-    const myNumber = "31633179600@c.us"; // your number
+    // const myNumber = "316xxxxxxx@c.us"; // your number
 
-    await client.sendMessage(myNumber, "🤖 WhatsApp bot is online.");
+    // await client.sendMessage(myNumber, "🤖 WhatsApp bot is online.");
 
     const chats = await client.getChats();
 
