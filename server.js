@@ -152,28 +152,7 @@ async function safeSendMessage(group, message, retries = 3) {
     }
 }
 
-app.post('/send', async (req, res) => {
-    if (!isReady) {
-        return res.status(503).json({ error: "WhatsApp not ready" });
-    }
-
-    try {
-        const { group, message } = req.body;
-
-        await safeSendMessage(group, message);
-
-        res.json({ status: "sent" });
-    } catch (err) {
-        console.error("Send error:", err);
-
-        res.status(500).json({
-            status: "error",
-            error: err.message
-        });
-    }
-});
-
-setInterval(async () => {
+async function healthCheck() {
 
     if (restarting) return;
 
@@ -203,8 +182,34 @@ setInterval(async () => {
             restarting = false;
         }
     }
+}
 
-}, 3600000);
+app.post('/send', async (req, res) => {
+    if (!isReady) {
+        return res.status(503).json({ error: "WhatsApp not ready" });
+    }
 
-startClient();
-app.listen(3000);
+    try {
+        const { group, message } = req.body;
+
+        await safeSendMessage(group, message);
+
+        res.json({ status: "sent" });
+    } catch (err) {
+        console.error("Send error:", err);
+
+        res.status(500).json({
+            status: "error",
+            error: err.message
+        });
+    }
+});
+
+app.listen(3000, async () => {
+    console.log("Server listening on port 3000");
+    await startClient();
+
+    await healthCheck();
+
+    setInterval(healthCheck, 3600000);
+});
