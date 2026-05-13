@@ -35,6 +35,8 @@ async function startClient(retries = 5) {
 }
 
 let isReady = false;
+let sending = false;
+let restarting = false;
 
 client.on('qr', qr => {
     qrcode.generate(qr, { small: true });
@@ -86,16 +88,66 @@ client.on('authenticated', () => {
 });
 
 async function safeSendMessage(group, message, retries = 3) {
-    try {
-        return await client.sendMessage(group, message);
-    } catch (err) {
 
-        if (err.message.includes("detached Frame") && retries > 0) {
-            console.log("Retrying send...");
-            await new Promise(r => setTimeout(r, 2000));
-            return safeSendMessage(group, message, retries - 1);
+    while (sending) {
+        await new Promise(r => setTimeout(r, 500));
+    }
+
+    sending = true;
+
+    try {
+
+        if (!client.pupPage || client.pupPage.isClosed()) {
+            throw new Error("WhatsApp page unavailable");
         }
 
+        const result = await client.sendMessage(group, message);
+
+        sending = false;
+        return result;
+
+    } catch (err) {
+
+        console.error("Send attempt failed:", err.message);
+
+        const recoverable =
+            err.message.includes("detached Frame") ||
+            err.message.includes("Execution context was destroyed") ||
+            err.message.includes("Cannot read properties of undefined");
+
+        if (recoverable && retries > 0) {
+
+            console.log("Recovering WhatsApp session...");
+
+            try {
+                isReady = false;
+
+                await client.destroy();
+            } catch (e) {
+                console.log("Destroy error:", e.message);
+            }
+
+            await new Promise(r => setTimeout(r, 5000));
+
+            try {
+                await client.initialize();
+
+                await new Promise(r => setTimeout(r, 10000));
+
+                isReady = true;
+
+                sending = false;
+
+                return safeSendMessage(group, message, retries - 1);
+
+            } catch (reinitErr) {
+
+                sending = false;
+                throw reinitErr;
+            }
+        }
+
+        sending = false;
         throw err;
     }
 }
@@ -120,6 +172,39 @@ app.post('/send', async (req, res) => {
         });
     }
 });
+
+setInterval(async () => {
+
+    if (restarting) return;
+
+    try {
+
+        if (!client.info) {
+            throw new Error("Client unavailable");
+        }
+
+        await client.getState();
+
+    } catch (err) {
+
+        restarting = true;
+
+        console.log("Health check failed. Restarting client...");
+
+        isReady = false;
+
+        try {
+            await client.destroy();
+        } catch {}
+
+        try {
+            await startClient();
+        } finally {
+            restarting = false;
+        }
+    }
+
+}, 3600000);
 
 startClient();
 app.listen(3000);
